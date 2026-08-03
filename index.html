@@ -1,0 +1,417 @@
+<title>Фестиваль мороженого — регистрация в розыгрыше</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<style>
+  :root{
+    --ground:#FBF5EC; --card:#FFFFFF; --ink:#3A2530; --ink-soft:#6E5560;
+    --line:#EADFD3; --field:#FBF6F1; --field-line:#E4D5C6;
+    --accent:#E8517A; --accent-press:#CE3E66; --accent-ink:#FFFFFF;
+    --pistachio:#6FAE6B; --gold:#D89A3C;
+    --blob-a:rgba(232,81,122,.16); --blob-b:rgba(111,174,107,.16);
+    --shadow:0 18px 40px -18px rgba(58,37,48,.35);
+    --ok:#2FA36B;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#241019; --card:#331A24; --ink:#FBECEF; --ink-soft:#C99FAE;
+      --line:#482C38; --field:#3C2029; --field-line:#573440;
+      --accent:#FF6E96; --accent-press:#FF8FAD; --accent-ink:#2A0E17;
+      --pistachio:#8FCB86; --gold:#E7B65E;
+      --blob-a:rgba(255,110,150,.14); --blob-b:rgba(143,203,134,.12);
+      --shadow:0 22px 48px -20px rgba(0,0,0,.6);
+      --ok:#57C58C;
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#FBF5EC; --card:#FFFFFF; --ink:#3A2530; --ink-soft:#6E5560;
+    --line:#EADFD3; --field:#FBF6F1; --field-line:#E4D5C6;
+    --accent:#E8517A; --accent-press:#CE3E66; --accent-ink:#FFFFFF;
+    --pistachio:#6FAE6B; --gold:#D89A3C;
+    --blob-a:rgba(232,81,122,.16); --blob-b:rgba(111,174,107,.16);
+    --shadow:0 18px 40px -18px rgba(58,37,48,.35); --ok:#2FA36B;
+  }
+  :root[data-theme="dark"]{
+    --ground:#241019; --card:#331A24; --ink:#FBECEF; --ink-soft:#C99FAE;
+    --line:#482C38; --field:#3C2029; --field-line:#573440;
+    --accent:#FF6E96; --accent-press:#FF8FAD; --accent-ink:#2A0E17;
+    --pistachio:#8FCB86; --gold:#E7B65E;
+    --blob-a:rgba(255,110,150,.14); --blob-b:rgba(143,203,134,.12);
+    --shadow:0 22px 48px -20px rgba(0,0,0,.6); --ok:#57C58C;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:var(--ground);
+    min-height:100dvh;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(42% 30% at 82% 6%, var(--blob-a), transparent 70%),
+      radial-gradient(46% 32% at 10% 96%, var(--blob-b), transparent 72%);
+  }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:480px; margin:0 auto;
+    padding:22px 18px calc(28px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:18px;
+    min-height:100dvh;
+  }
+
+  /* --- Header / hook --- */
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:7px; align-self:flex-start;
+    font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-soft); background:var(--card); border:1px solid var(--line);
+    padding:6px 12px; border-radius:999px; box-shadow:var(--shadow);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--pistachio)}
+
+  .hero{display:flex; flex-direction:column; gap:10px}
+  .scoop{font-size:44px; line-height:1; filter:saturate(1.05)}
+  h1{
+    margin:0; font-size:clamp(28px,8vw,36px); line-height:1.04;
+    font-weight:800; letter-spacing:-.02em; text-wrap:balance;
+  }
+  h1 em{font-style:normal; color:var(--accent)}
+  .lede{
+    margin:0; font-size:15.5px; line-height:1.5; color:var(--ink-soft);
+    max-width:38ch;
+  }
+  .lede b{color:var(--ink); font-weight:600}
+
+  /* --- Prize strip --- */
+  .prize{
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:12px 14px; box-shadow:var(--shadow);
+  }
+  .prize .big{font-size:26px}
+  .prize .t{font-size:13.5px; line-height:1.35}
+  .prize .t strong{display:block; font-size:15px; color:var(--ink)}
+  .prize .t span{color:var(--ink-soft)}
+
+  /* --- Form card --- */
+  form{
+    background:var(--card); border:1px solid var(--line); border-radius:20px;
+    padding:18px 16px; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .field{display:flex; flex-direction:column; gap:6px}
+  label{font-size:13.5px; font-weight:600; color:var(--ink)}
+  label .req{color:var(--accent)}
+  label .opt{color:var(--ink-soft); font-weight:500}
+  input[type="text"],input[type="tel"],input[type="email"]{
+    font:inherit; font-size:16.5px; /* 16+ = no iOS zoom */
+    color:var(--ink); background:var(--field);
+    border:1.5px solid var(--field-line); border-radius:13px;
+    padding:14px 14px; width:100%; transition:border-color .15s, box-shadow .15s;
+  }
+  input::placeholder{color:var(--ink-soft); opacity:.7}
+  input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%, transparent)}
+  input[aria-invalid="true"]{border-color:var(--accent)}
+  .err{font-size:12.5px; color:var(--accent); min-height:0; display:none}
+  .field.bad .err{display:block}
+
+  /* --- Consents --- */
+  .consents{display:flex; flex-direction:column; gap:11px; margin-top:2px}
+  .check{display:flex; gap:10px; align-items:flex-start; cursor:pointer}
+  .check input{
+    appearance:none; -webkit-appearance:none; margin:0; flex:0 0 auto;
+    width:22px; height:22px; border:1.5px solid var(--field-line); border-radius:7px;
+    background:var(--field); position:relative; cursor:pointer; transition:.15s; margin-top:1px;
+  }
+  .check input:checked{background:var(--accent); border-color:var(--accent)}
+  .check input:checked::after{
+    content:""; position:absolute; left:7px; top:3px; width:5px; height:10px;
+    border:solid var(--accent-ink); border-width:0 2.5px 2.5px 0; transform:rotate(45deg);
+  }
+  .check input:focus-visible{outline:none; box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%, transparent)}
+  .check span{font-size:12.5px; line-height:1.45; color:var(--ink-soft)}
+  .check.bad span{color:var(--accent)}
+  .check a{color:var(--ink); text-underline-offset:2px}
+
+  /* --- CTA --- */
+  button.cta{
+    font:inherit; font-size:17px; font-weight:700; letter-spacing:.01em;
+    color:var(--accent-ink); background:var(--accent); border:none; border-radius:14px;
+    padding:16px; cursor:pointer; margin-top:4px;
+    transition:transform .06s, background .15s; box-shadow:0 10px 22px -10px var(--accent);
+  }
+  button.cta:hover{background:var(--accent-press)}
+  button.cta:active{transform:translateY(1px)}
+  .fine{font-size:12px; color:var(--ink-soft); text-align:center; margin-top:-2px}
+  .fine b{color:var(--pistachio)}
+
+  .footer{margin-top:auto; text-align:center; font-size:11.5px; color:var(--ink-soft)}
+  .footer a{color:var(--ink-soft); cursor:pointer}
+
+  /* --- Success overlay --- */
+  .success{
+    position:fixed; inset:0; z-index:20; display:none;
+    align-items:center; justify-content:center; padding:24px;
+    background:color-mix(in srgb,var(--ground) 88%, transparent); backdrop-filter:blur(6px);
+  }
+  .success.on{display:flex; animation:fade .3s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .success .box{
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    box-shadow:var(--shadow); padding:30px 24px; max-width:400px; width:100%;
+    text-align:center; animation:pop .4s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes pop{from{transform:scale(.9) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+  .success .emoji{font-size:56px; line-height:1}
+  .success h2{margin:14px 0 8px; font-size:24px; font-weight:800; letter-spacing:-.01em}
+  .success p{margin:0 auto; font-size:15.5px; line-height:1.55; color:var(--ink-soft); max-width:32ch}
+  .success .ticket{
+    margin:18px auto 0; display:inline-flex; flex-direction:column; gap:2px;
+    background:var(--field); border:1px dashed var(--accent); border-radius:14px;
+    padding:12px 20px;
+  }
+  .success .ticket small{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft)}
+  .success .ticket b{font-size:26px; color:var(--accent); font-variant-numeric:tabular-nums}
+  .success .when{
+    margin-top:16px; font-size:14px; color:var(--ink); font-weight:600;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+
+  /* --- Organizer / admin --- */
+  .admin{
+    position:fixed; inset:0; z-index:30; display:none; overflow:auto;
+    background:var(--ground); padding:20px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .admin.on{display:block}
+  .admin .head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; max-width:720px; margin-inline:auto}
+  .admin h3{margin:0; font-size:18px; font-weight:800}
+  .admin .count{font-size:13px; color:var(--ink-soft)}
+  .admin .bar{display:flex; gap:8px; flex-wrap:wrap; max-width:720px; margin:0 auto 14px}
+  .admin .bar button{
+    font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border-radius:10px;
+    padding:9px 13px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+  }
+  .admin .bar button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+  .admin .bar button.ghost{color:var(--ink-soft)}
+  .tablewrap{max-width:720px; margin:0 auto; overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--card)}
+  table{border-collapse:collapse; width:100%; font-size:13px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap}
+  th{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600}
+  td.tel{font-variant-numeric:tabular-nums}
+  .yes{color:var(--ok); font-weight:700}
+  .no{color:var(--ink-soft)}
+  .empty{padding:40px 16px; text-align:center; color:var(--ink-soft); font-size:14px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important}
+  }
+</style>
+
+<div class="wrap">
+  <span class="eyebrow"><span class="dot"></span>Фестиваль мороженого · Центральный рынок</span>
+
+  <div class="hero">
+    <div class="scoop">🍦</div>
+    <h1>Разыгрываем <em>годовой запас мороженого</em></h1>
+    <p class="lede">Вы уже крутанули колесо и получили угощение с подарком. Осталось <b>зарегистрировать билет участника</b> — и в&nbsp;19:00 вы в розыгрыше главного приза.</p>
+  </div>
+
+  <div class="prize">
+    <span class="big">🎡</span>
+    <span class="t"><strong>Розыгрыш в 19:00, сегодня</strong><span>Победитель получает мороженое на весь год</span></span>
+  </div>
+
+  <form id="form" novalidate>
+    <div class="field" id="f-name">
+      <label for="name">Имя <span class="req">*</span></label>
+      <input id="name" name="name" type="text" inputmode="text" autocomplete="given-name" placeholder="Как к вам обращаться" required>
+      <div class="err">Пожалуйста, введите имя</div>
+    </div>
+
+    <div class="field" id="f-phone">
+      <label for="phone">Телефон <span class="req">*</span></label>
+      <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
+      <div class="err">Введите корректный номер телефона</div>
+    </div>
+
+    <div class="field" id="f-email">
+      <label for="email">Email <span class="opt">— по желанию</span></label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.ru">
+      <div class="err">Проверьте адрес почты</div>
+    </div>
+
+    <div class="consents">
+      <label class="check" id="c-pdn">
+        <input type="checkbox" id="pdn" required>
+        <span>Согласен на обработку <a>персональных данных</a> для участия в розыгрыше и связи со мной.</span>
+      </label>
+      <label class="check" id="c-ad">
+        <input type="checkbox" id="ad">
+        <span>Хочу получать новости, акции и специальные предложения по SMS, email и в мессенджерах.</span>
+      </label>
+    </div>
+
+    <button type="submit" class="cta">Участвовать в розыгрыше</button>
+    <p class="fine">Займёт <b>20 секунд</b> · без спама, отписаться можно в один клик</p>
+  </form>
+
+  <div class="footer"><a id="orgLink">Организатору</a></div>
+</div>
+
+<!-- Success -->
+<div class="success" id="success" role="dialog" aria-live="polite" aria-modal="true">
+  <div class="box">
+    <div class="emoji">🎉</div>
+    <h2>Вы успешно зарегистрированы!</h2>
+    <p>Спасибо за участие. Ждём вас в 19:00 на розыгрыше годового запаса мороженого.</p>
+    <div class="ticket"><small>Ваш билет участника</small><b id="ticketNo">№ 001</b></div>
+    <div class="when">⏰ Розыгрыш сегодня в 19:00</div>
+  </div>
+</div>
+
+<!-- Organizer panel (demo of the CRM / export loop) -->
+<div class="admin" id="admin">
+  <div class="head">
+    <h3>Заявки фестиваля</h3>
+    <span class="count" id="count">0 заявок</span>
+  </div>
+  <div class="bar">
+    <button class="primary" id="exportBtn">↓ Экспорт в CSV (Excel)</button>
+    <button id="closeAdmin">Назад к форме</button>
+    <button class="ghost" id="clearBtn">Очистить демо</button>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>Имя</th><th>Телефон</th><th>Email</th><th>Реклама</th><th>Время</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty">Пока нет заявок. Заполните форму — она появится здесь и уйдёт в выгрузку.</div>
+  </div>
+</div>
+
+<script>
+const KEY = "festival_leads_v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+
+// --- Phone: normalize RU numbers to +7XXXXXXXXXX, format as you type ---
+function normalizePhone(raw){
+  let d = (raw||"").replace(/\D/g,"");
+  if(d.startsWith("8")) d = "7" + d.slice(1);
+  if(d.length && d[0] !== "7") d = "7" + d;      // assume RU if no country code
+  d = d.slice(0,11);
+  return d.length === 11 ? "+"+d : null;          // valid only at 11 digits
+}
+function formatPhone(raw){
+  let d = (raw||"").replace(/\D/g,"");
+  if(d.startsWith("8")) d = "7"+d.slice(1);
+  if(d && d[0] !== "7") d = "7"+d;
+  d = d.slice(0,11);
+  if(!d) return "";
+  const p = d.slice(1);
+  let out = "+7";
+  if(p.length) out += " (" + p.slice(0,3);
+  if(p.length >= 3) out += ") " + p.slice(3,6);
+  if(p.length >= 6) out += "-" + p.slice(6,8);
+  if(p.length >= 8) out += "-" + p.slice(8,10);
+  return out;
+}
+const validEmail = (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+const $ = (id) => document.getElementById(id);
+const phoneEl = $("phone");
+phoneEl.addEventListener("input", () => {
+  const s = phoneEl.selectionStart, len = phoneEl.value.length;
+  phoneEl.value = formatPhone(phoneEl.value);
+  // keep caret at end while typing forward (good enough for a fast form)
+  if(s >= len) phoneEl.setSelectionRange(phoneEl.value.length, phoneEl.value.length);
+});
+
+function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
+  const inp = $(fieldId).querySelector("input"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("name").value.trim();
+  const phone = normalizePhone(phoneEl.value);
+  const email = $("email").value.trim();
+  const pdn = $("pdn").checked;
+  const ad = $("ad").checked;
+
+  let ok = true;
+  setBad("f-name", !name); if(!name) ok = false;
+  setBad("f-phone", !phone); if(!phone) ok = false;
+  setBad("f-email", !validEmail(email)); if(!validEmail(email)) ok = false;
+  $("c-pdn").classList.toggle("bad", !pdn); if(!pdn) ok = false;
+  if(!ok){ const first = document.querySelector(".field.bad input, .check.bad input"); if(first) first.focus(); return; }
+
+  const leads = load();
+  const entry = { n:leads.length+1, name, phone, email, ad, ts:new Date().toISOString() };
+  leads.push(entry); save(leads);
+
+  $("ticketNo").textContent = "№ " + String(entry.n).padStart(3,"0");
+  $("success").classList.add("on");
+  // In production this same submit POSTs to a Google Sheets / CRM endpoint.
+});
+
+// tap success to reset (for demo: register many people)
+$("success").addEventListener("click", () => {
+  $("success").classList.remove("on");
+  $("form").reset();
+  document.querySelectorAll(".field.bad,.check.bad").forEach(el=>el.classList.remove("bad"));
+  $("name").focus();
+});
+
+// --- Organizer panel ---
+function renderAdmin(){
+  const leads = load();
+  $("count").textContent = leads.length + " " + plural(leads.length,["заявка","заявки","заявок"]);
+  const rows = $("rows"), empty = $("empty");
+  rows.innerHTML = "";
+  empty.style.display = leads.length ? "none" : "block";
+  leads.forEach(l => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${l.n}</td><td>${esc(l.name)}</td><td class="tel">${esc(l.phone)}</td>`+
+      `<td>${l.email?esc(l.email):'<span class="no">—</span>'}</td>`+
+      `<td>${l.ad?'<span class="yes">да</span>':'<span class="no">нет</span>'}</td>`+
+      `<td>${new Date(l.ts).toLocaleString("ru-RU")}</td>`;
+    rows.appendChild(tr);
+  });
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function plural(n,f){ n=Math.abs(n)%100; const n1=n%10;
+  if(n>10&&n<20)return f[2]; if(n1>1&&n1<5)return f[1]; if(n1===1)return f[0]; return f[2]; }
+
+$("orgLink").addEventListener("click", () => { renderAdmin(); $("admin").classList.add("on"); });
+$("closeAdmin").addEventListener("click", () => $("admin").classList.remove("on"));
+$("clearBtn").addEventListener("click", () => { if(confirm("Удалить все демо-заявки?")){ save([]); renderAdmin(); } });
+$("exportBtn").addEventListener("click", () => {
+  const leads = load();
+  if(!leads.length){ alert("Пока нет заявок для выгрузки."); return; }
+  const head = ["№","Имя","Телефон","Email","Согласие на рекламу","Дата/время"];
+  const csv = [head.join(";")].concat(leads.map(l =>
+    [l.n, l.name, l.phone, l.email||"", l.ad?"да":"нет", new Date(l.ts).toLocaleString("ru-RU")]
+      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(";")
+  )).join("\r\n");
+  const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}); // BOM = Cyrillic-safe in Excel
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "zayavki-festival.csv"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// --- Self-check: run with ?selftest=1 ---
+if(new URLSearchParams(location.search).get("selftest")){
+  const A=(c,m)=>{ if(!c) throw new Error("FAIL: "+m); };
+  A(normalizePhone("8 912 345 67 89")==="+79123456789","8-prefix");
+  A(normalizePhone("+7 (912) 345-67-89")==="+79123456789","formatted");
+  A(normalizePhone("9123456789")==="+79123456789","10-digit no code");
+  A(normalizePhone("912345")===null,"too short -> null");
+  A(validEmail("")===true,"empty email ok");
+  A(validEmail("a@b.ru")===true,"valid email");
+  A(validEmail("nope")===false,"invalid email");
+  document.title = "✅ selftest passed";
+  console.log("selftest passed");
+}
+</script>
