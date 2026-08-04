@@ -309,6 +309,8 @@
 
 <script>
 const KEY = "festival_leads_v1";
+// Боевая общая база — Apps Script веб-приложение, привязанное к Google-таблице заявок.
+const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxUopV_c8w7fdOWo4Gl0YWV3udXQTkOFgVt6-Z0tCfE9vrNQKhZKsyhr7ImC1Gf-vPb/exec";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
 const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
 
@@ -367,9 +369,18 @@ $("form").addEventListener("submit", (e) => {
   const entry = { n:leads.length+1, name, phone, email, ad, ts:new Date().toISOString() };
   leads.push(entry); save(leads);
 
+  // Дублируем в общую Google-таблицу (fire-and-forget). localStorage = офлайн-резерв:
+  // no-cors + text/plain => без CORS-preflight; ответ не читаем, номер билета берём локально.
+  // Сбой/офлайн — заявка остаётся в localStorage, не теряется.
+  fetch(SHEET_ENDPOINT, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ name, phone, email, ad })
+  }).catch(() => {});
+
   $("ticketNo").textContent = "№ " + String(entry.n).padStart(3,"0");
   $("success").classList.add("on");
-  // In production this same submit POSTs to a Google Sheets / CRM endpoint.
 });
 
 // tap success to reset (for demo: register many people)
