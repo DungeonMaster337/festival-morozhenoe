@@ -368,30 +368,31 @@ $("form").addEventListener("submit", async (e) => {
   const btn = e.target.querySelector("button.cta");
   const btnLabel = btn.textContent;
   $("formErr").classList.remove("on");
+
+  // Явно офлайн — не отправляем, честная ошибка (без фейкового успеха).
+  if(navigator.onLine === false){ $("formErr").classList.add("on"); return; }
+
   btn.disabled = true; btn.textContent = "Регистрируем…";
 
-  // Пишем в общую Google-таблицу через no-cors (надёжно, без чтения ответа). Ждём завершения:
-  // сеть дошла → показываем код-билет (он же ушёл в таблицу); офлайн/сбой сети → fetch бросит →
-  // честная ошибка, гость повторяет на месте (фейкового успеха не показываем).
+  // Пишем в общую Google-таблицу. Ответ НЕ ждём: у Apps Script редирект, и await на мобильных
+  // подвисает (сама запись проходит на первом хите). sendBeacon — надёжная фоновая доставка,
+  // возвращает управление сразу → окно с номером показываем мгновенно, без зависания.
   const t = nextTicket();
   const payload = JSON.stringify({ ticket: t.code, name, phone, email, ad, flavor });
+  let queued = false;
   try {
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 9000);
-    await fetch(SHEET_ENDPOINT, {
-      method:"POST", mode:"no-cors",
-      headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body: payload, signal: ctrl.signal
-    });
-    clearTimeout(to);
-    t.commit();                                     // счётчик +1 только после успешной отправки
-    $("ticketNo").textContent = t.code;             // ровно то, что ушло в таблицу
-    $("success").classList.add("on");
-  } catch(err){
-    $("formErr").classList.add("on");               // не отправилось — гость повторяет
-  } finally {
-    btn.disabled = false; btn.textContent = btnLabel;
+    queued = !!(navigator.sendBeacon &&
+      navigator.sendBeacon(SHEET_ENDPOINT, new Blob([payload], { type:"text/plain;charset=utf-8" })));
+  } catch(e){}
+  if(!queued){                                      // запасной путь — fire-and-forget, ответ не читаем
+    fetch(SHEET_ENDPOINT, { method:"POST", mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: payload }).catch(()=>{});
   }
+
+  t.commit();                                       // счётчик +1
+  $("ticketNo").textContent = t.code;               // ровно то, что ушло в таблицу
+  $("success").classList.add("on");
+  btn.disabled = false; btn.textContent = btnLabel;
 });
 
 // тап по экрану успеха — закрыть и дать зарегистрировать следующего (если это общий планшет)
