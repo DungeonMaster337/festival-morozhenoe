@@ -334,6 +334,20 @@ phoneEl.addEventListener("input", () => {
 function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
   const inp = $(fieldId).querySelector("input,select"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
 
+// Уникальный код билета = префикс устройства (создаётся раз, буквы без похожих O/0/I/1) + счётчик.
+// Браузер НЕ может прочитать ответ Apps Script (редирект ломает CORS), поэтому номер генерим здесь
+// и шлём в таблицу — экран и таблица показывают ОДИН код. Счётчик двигаем только при успешной отправке.
+function nextTicket(){
+  let dev = localStorage.getItem("fest_dev");
+  if(!dev){
+    const s = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    dev = Array.from({length:3}, () => s[Math.floor(Math.random()*s.length)]).join("");
+    localStorage.setItem("fest_dev", dev);
+  }
+  const cnt = (parseInt(localStorage.getItem("fest_cnt"),10) || 0) + 1;
+  return { code: dev + "-" + String(cnt).padStart(3,"0"), commit(){ localStorage.setItem("fest_cnt", String(cnt)); } };
+}
+
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = $("name").value.trim();
@@ -356,24 +370,25 @@ $("form").addEventListener("submit", async (e) => {
   $("formErr").classList.remove("on");
   btn.disabled = true; btn.textContent = "Регистрируем…";
 
-  // Онлайн-запись в общую Google-таблицу. Сервер возвращает номер строки (сквозной, уникальный,
-  // совпадает с таблицей) — его и показываем как билет. ACAO:* у Apps Script → браузер читает ответ.
-  // Нет сети / не отработало → честная ошибка, гость повторяет (фейкового успеха не показываем).
-  const payload = JSON.stringify({ name, phone, email, ad, flavor });
+  // Пишем в общую Google-таблицу через no-cors (надёжно, без чтения ответа). Ждём завершения:
+  // сеть дошла → показываем код-билет (он же ушёл в таблицу); офлайн/сбой сети → fetch бросит →
+  // честная ошибка, гость повторяет на месте (фейкового успеха не показываем).
+  const t = nextTicket();
+  const payload = JSON.stringify({ ticket: t.code, name, phone, email, ad, flavor });
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 9000);
-    const res = await fetch(SHEET_ENDPOINT, {
-      method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+    const to = setTimeout(() => ctrl.abort(), 9000);
+    await fetch(SHEET_ENDPOINT, {
+      method:"POST", mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
       body: payload, signal: ctrl.signal
     });
-    clearTimeout(t);
-    const data = await res.json();
-    if(!data || !data.ok || !data.n) throw new Error("bad response");
-    $("ticketNo").textContent = "№ " + data.n;      // ровно как в таблице (без ведущих нулей)
+    clearTimeout(to);
+    t.commit();                                     // счётчик +1 только после успешной отправки
+    $("ticketNo").textContent = t.code;             // ровно то, что ушло в таблицу
     $("success").classList.add("on");
   } catch(err){
-    $("formErr").classList.add("on");               // не отправилось — гость повторяет на месте
+    $("formErr").classList.add("on");               // не отправилось — гость повторяет
   } finally {
     btn.disabled = false; btn.textContent = btnLabel;
   }
