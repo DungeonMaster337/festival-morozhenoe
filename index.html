@@ -369,15 +369,22 @@ $("form").addEventListener("submit", (e) => {
   const entry = { n:leads.length+1, name, phone, email, ad, ts:new Date().toISOString() };
   leads.push(entry); save(leads);
 
-  // Дублируем в общую Google-таблицу (fire-and-forget). localStorage = офлайн-резерв:
-  // no-cors + text/plain => без CORS-preflight; ответ не читаем, номер билета берём локально.
-  // Сбой/офлайн — заявка остаётся в localStorage, не теряется.
-  fetch(SHEET_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ name, phone, email, ad })
-  }).catch(() => {});
+  // Дублируем в общую Google-таблицу (fire-and-forget). localStorage = офлайн-резерв.
+  // sendBeacon — штатный fire-and-forget POST (без CORS-preflight, переживает уход со страницы);
+  // fetch(no-cors) — запасной путь. Сбой/офлайн — заявка остаётся в localStorage, не теряется.
+  const payload = JSON.stringify({ name, phone, email, ad });
+  let sent = false;
+  try {
+    if (navigator.sendBeacon) {
+      sent = navigator.sendBeacon(SHEET_ENDPOINT, new Blob([payload], { type:"text/plain;charset=utf-8" }));
+    }
+  } catch(e){}
+  if (!sent) {
+    fetch(SHEET_ENDPOINT, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, body: payload
+    }).catch(() => {});
+  }
 
   $("ticketNo").textContent = "№ " + String(entry.n).padStart(3,"0");
   $("success").classList.add("on");
