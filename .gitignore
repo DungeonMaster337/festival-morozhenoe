@@ -1,5 +1,6 @@
 Фото/
 Реквизиты.pdf
 *.pdf
+!plakat-a6-print.pdf
 *.tmp
 .DS_Store
