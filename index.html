@@ -124,6 +124,13 @@
   input::placeholder{color:var(--ink-soft); opacity:.7}
   input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%, transparent)}
   input[aria-invalid="true"]{border-color:var(--accent)}
+  select{
+    font:inherit; font-size:16.5px; color:var(--ink); background:var(--field);
+    border:1.5px solid var(--field-line); border-radius:13px; padding:13px 14px;
+    width:100%; transition:border-color .15s, box-shadow .15s;
+  }
+  select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%, transparent)}
+  select[aria-invalid="true"]{border-color:var(--accent)}
   .err{font-size:12.5px; color:var(--accent); min-height:0; display:none}
   .field.bad .err{display:block}
 
@@ -258,6 +265,21 @@
       <div class="err">Проверьте адрес почты</div>
     </div>
 
+    <div class="field" id="f-flavor">
+      <label for="flavor">Выпавший вкус <span class="req">*</span></label>
+      <select id="flavor" name="flavor" required>
+        <option value="" disabled selected>— что выпало на колесе —</option>
+        <option>Мадагаскарская ваниль</option>
+        <option>Горький шоколад</option>
+        <option>Клубника со сливками</option>
+        <option>Шоколадное печенье</option>
+        <option>Фисташка</option>
+        <option>Зелёный чай — грейпфрут</option>
+        <option>Другой / не помню</option>
+      </select>
+      <div class="err">Выберите выпавший вкус</div>
+    </div>
+
     <div class="consents">
       <label class="check" id="c-pdn">
         <input type="checkbox" id="pdn" required>
@@ -300,7 +322,7 @@
   </div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>#</th><th>Имя</th><th>Телефон</th><th>Email</th><th>Реклама</th><th>Время</th></tr></thead>
+      <thead><tr><th>#</th><th>Имя</th><th>Телефон</th><th>Email</th><th>Вкус</th><th>Реклама</th><th>Время</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
     <div class="empty" id="empty">Пока нет заявок. Заполните форму — она появится здесь и уйдёт в выгрузку.</div>
@@ -348,13 +370,21 @@ phoneEl.addEventListener("input", () => {
 });
 
 function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
-  const inp = $(fieldId).querySelector("input"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
+  const inp = $(fieldId).querySelector("input,select"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
 
-$("form").addEventListener("submit", (e) => {
+// Уникальный резервный код на случай офлайна: префикс устройства (создаётся раз) + счётчик.
+function deviceId(){
+  let id = localStorage.getItem("festival_dev");
+  if(!id){ id = Math.random().toString(36).slice(2,5).toUpperCase(); localStorage.setItem("festival_dev", id); }
+  return id;
+}
+
+$("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = $("name").value.trim();
   const phone = normalizePhone(phoneEl.value);
   const email = $("email").value.trim();
+  const flavor = $("flavor").value;
   const pdn = $("pdn").checked;
   const ad = $("ad").checked;
 
@@ -362,32 +392,40 @@ $("form").addEventListener("submit", (e) => {
   setBad("f-name", !name); if(!name) ok = false;
   setBad("f-phone", !phone); if(!phone) ok = false;
   setBad("f-email", !validEmail(email)); if(!validEmail(email)) ok = false;
+  setBad("f-flavor", !flavor); if(!flavor) ok = false;
   $("c-pdn").classList.toggle("bad", !pdn); if(!pdn) ok = false;
-  if(!ok){ const first = document.querySelector(".field.bad input, .check.bad input"); if(first) first.focus(); return; }
+  if(!ok){ const first = document.querySelector(".field.bad input, .field.bad select, .check.bad input"); if(first) first.focus(); return; }
 
+  const btn = e.target.querySelector("button.cta");
+  const btnLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = "Регистрируем…";
+
+  // Локальный резерв (офлайн-подстраховка) + запасной уникальный код.
   const leads = load();
-  const entry = { n:leads.length+1, name, phone, email, ad, ts:new Date().toISOString() };
-  leads.push(entry); save(leads);
+  const fallback = deviceId() + "-" + String(leads.length+1).padStart(3,"0");
+  leads.push({ n:leads.length+1, ticket:fallback, name, phone, email, ad, flavor, ts:new Date().toISOString() });
+  save(leads);
 
-  // Дублируем в общую Google-таблицу (fire-and-forget). localStorage = офлайн-резерв.
-  // sendBeacon — штатный fire-and-forget POST (без CORS-preflight, переживает уход со страницы);
-  // fetch(no-cors) — запасной путь. Сбой/офлайн — заявка остаётся в localStorage, не теряется.
-  const payload = JSON.stringify({ name, phone, email, ad });
-  let sent = false;
+  // Пишем в общую Google-таблицу и читаем номер строки (сквозной, уникальный, совпадает с таблицей).
+  // У Apps Script на ответе Access-Control-Allow-Origin:* → браузер читает ответ.
+  // При офлайне/сбое чтения показываем локальный код `fallback` (заявка уже в localStorage).
+  const payload = JSON.stringify({ name, phone, email, ad, flavor });
+  let ticket = fallback;
   try {
-    if (navigator.sendBeacon) {
-      sent = navigator.sendBeacon(SHEET_ENDPOINT, new Blob([payload], { type:"text/plain;charset=utf-8" }));
-    }
-  } catch(e){}
-  if (!sent) {
-    fetch(SHEET_ENDPOINT, {
-      method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, body: payload
-    }).catch(() => {});
-  }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 7000);
+    const res = await fetch(SHEET_ENDPOINT, {
+      method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: payload, signal: ctrl.signal
+    });
+    clearTimeout(t);
+    const data = await res.json();
+    if(data && data.ok && data.n) ticket = "№ " + String(data.n).padStart(3,"0");
+  } catch(err){ /* офлайн/сбой — остаётся локальный код, заявка не потеряна */ }
 
-  $("ticketNo").textContent = "№ " + String(entry.n).padStart(3,"0");
+  $("ticketNo").textContent = ticket;
   $("success").classList.add("on");
+  btn.disabled = false; btn.textContent = btnLabel;
 });
 
 // tap success to reset (for demo: register many people)
@@ -409,6 +447,7 @@ function renderAdmin(){
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${l.n}</td><td>${esc(l.name)}</td><td class="tel">${esc(l.phone)}</td>`+
       `<td>${l.email?esc(l.email):'<span class="no">—</span>'}</td>`+
+      `<td>${l.flavor?esc(l.flavor):'<span class="no">—</span>'}</td>`+
       `<td>${l.ad?'<span class="yes">да</span>':'<span class="no">нет</span>'}</td>`+
       `<td>${new Date(l.ts).toLocaleString("ru-RU")}</td>`;
     rows.appendChild(tr);
@@ -434,9 +473,9 @@ $("clearBtn").addEventListener("click", () => { if(confirm("Удалить вс�
 $("exportBtn").addEventListener("click", () => {
   const leads = load();
   if(!leads.length){ alert("Пока нет заявок для выгрузки."); return; }
-  const head = ["№","Имя","Телефон","Email","Согласие на рекламу","Дата/время"];
+  const head = ["№","Имя","Телефон","Email","Выпавший вкус","Согласие на рекламу","Дата/время"];
   const csv = [head.join(";")].concat(leads.map(l =>
-    [l.n, l.name, l.phone, l.email||"", l.ad?"да":"нет", new Date(l.ts).toLocaleString("ru-RU")]
+    [l.n, l.name, l.phone, l.email||"", l.flavor||"", l.ad?"да":"нет", new Date(l.ts).toLocaleString("ru-RU")]
       .map(v => `"${String(v).replace(/"/g,'""')}"`).join(";")
   )).join("\r\n");
   const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}); // BOM = Cyrillic-safe in Excel
