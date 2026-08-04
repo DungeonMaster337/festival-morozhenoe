@@ -196,30 +196,12 @@
     display:inline-flex; align-items:center; gap:7px;
   }
 
-  /* --- Organizer / admin --- */
-  .admin{
-    position:fixed; inset:0; z-index:30; display:none; overflow:auto;
-    background:var(--ground); padding:20px 16px calc(24px + env(safe-area-inset-bottom));
+  /* --- Form-level error (нет сети / не отправилось) --- */
+  .formerr{
+    font-size:13px; line-height:1.4; color:var(--accent); text-align:center;
+    margin:-2px 0 0; display:none;
   }
-  .admin.on{display:block}
-  .admin .head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; max-width:720px; margin-inline:auto}
-  .admin h3{margin:0; font-size:18px; font-weight:800}
-  .admin .count{font-size:13px; color:var(--ink-soft)}
-  .admin .bar{display:flex; gap:8px; flex-wrap:wrap; max-width:720px; margin:0 auto 14px}
-  .admin .bar button{
-    font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border-radius:10px;
-    padding:9px 13px; border:1px solid var(--line); background:var(--card); color:var(--ink);
-  }
-  .admin .bar button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
-  .admin .bar button.ghost{color:var(--ink-soft)}
-  .tablewrap{max-width:720px; margin:0 auto; overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--card)}
-  table{border-collapse:collapse; width:100%; font-size:13px}
-  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap}
-  th{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600}
-  td.tel{font-variant-numeric:tabular-nums}
-  .yes{color:var(--ok); font-weight:700}
-  .no{color:var(--ink-soft)}
-  .empty{padding:40px 16px; text-align:center; color:var(--ink-soft); font-size:14px}
+  .formerr.on{display:block}
 
   @media (prefers-reduced-motion: reduce){
     *{animation:none !important; transition:none !important}
@@ -292,10 +274,11 @@
     </div>
 
     <button type="submit" class="cta">Участвовать в розыгрыше</button>
+    <p class="formerr" id="formErr">Не удалось отправить. Проверьте интернет и попробуйте ещё раз.</p>
     <p class="fine">Займёт <b>20 секунд</b> · без спама, отписаться можно в один клик</p>
   </form>
 
-  <div class="footer">Организатор: ООО «ИЛЬ МИО МОРОЖЕНКО» · <a id="orgLink">Организатору</a></div>
+  <div class="footer">Организатор: ООО «ИЛЬ МИО МОРОЖЕНКО»</div>
 </div>
 
 <!-- Success -->
@@ -309,32 +292,11 @@
   </div>
 </div>
 
-<!-- Organizer panel (demo of the CRM / export loop) -->
-<div class="admin" id="admin">
-  <div class="head">
-    <h3>Заявки фестиваля</h3>
-    <span class="count" id="count">0 заявок</span>
-  </div>
-  <div class="bar">
-    <button class="primary" id="exportBtn">↓ Экспорт в CSV (Excel)</button>
-    <button id="closeAdmin">Назад к форме</button>
-    <button class="ghost" id="clearBtn">Очистить демо</button>
-  </div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>#</th><th>Имя</th><th>Телефон</th><th>Email</th><th>Вкус</th><th>Реклама</th><th>Время</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div class="empty" id="empty">Пока нет заявок. Заполните форму — она появится здесь и уйдёт в выгрузку.</div>
-  </div>
-</div>
-
 <script>
-const KEY = "festival_leads_v1";
-// Боевая общая база — Apps Script веб-приложение, привязанное к Google-таблице заявок.
+// Единое хранилище заявок — Apps Script веб-приложение, привязанное к Google-таблице.
+// Регистрация идёт с личных телефонов гостей, поэтому локального хранилища нет:
+// таблица = единственный источник правды (панель организатора = сама таблица под её аккаунтом).
 const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxUopV_c8w7fdOWo4Gl0YWV3udXQTkOFgVt6-Z0tCfE9vrNQKhZKsyhr7ImC1Gf-vPb/exec";
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
-const save = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
 
 // --- Phone: normalize RU numbers to +7XXXXXXXXXX, format as you type ---
 function normalizePhone(raw){
@@ -372,13 +334,6 @@ phoneEl.addEventListener("input", () => {
 function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
   const inp = $(fieldId).querySelector("input,select"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
 
-// Уникальный резервный код на случай офлайна: префикс устройства (создаётся раз) + счётчик.
-function deviceId(){
-  let id = localStorage.getItem("festival_dev");
-  if(!id){ id = Math.random().toString(36).slice(2,5).toUpperCase(); localStorage.setItem("festival_dev", id); }
-  return id;
-}
-
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = $("name").value.trim();
@@ -398,90 +353,38 @@ $("form").addEventListener("submit", async (e) => {
 
   const btn = e.target.querySelector("button.cta");
   const btnLabel = btn.textContent;
+  $("formErr").classList.remove("on");
   btn.disabled = true; btn.textContent = "Регистрируем…";
 
-  // Локальный резерв (офлайн-подстраховка) + запасной уникальный код.
-  const leads = load();
-  const fallback = deviceId() + "-" + String(leads.length+1).padStart(3,"0");
-  leads.push({ n:leads.length+1, ticket:fallback, name, phone, email, ad, flavor, ts:new Date().toISOString() });
-  save(leads);
-
-  // Пишем в общую Google-таблицу и читаем номер строки (сквозной, уникальный, совпадает с таблицей).
-  // У Apps Script на ответе Access-Control-Allow-Origin:* → браузер читает ответ.
-  // При офлайне/сбое чтения показываем локальный код `fallback` (заявка уже в localStorage).
+  // Онлайн-запись в общую Google-таблицу. Сервер возвращает номер строки (сквозной, уникальный,
+  // совпадает с таблицей) — его и показываем как билет. ACAO:* у Apps Script → браузер читает ответ.
+  // Нет сети / не отработало → честная ошибка, гость повторяет (фейкового успеха не показываем).
   const payload = JSON.stringify({ name, phone, email, ad, flavor });
-  let ticket = fallback;
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 7000);
+    const t = setTimeout(() => ctrl.abort(), 9000);
     const res = await fetch(SHEET_ENDPOINT, {
       method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
       body: payload, signal: ctrl.signal
     });
     clearTimeout(t);
     const data = await res.json();
-    if(data && data.ok && data.n) ticket = "№ " + String(data.n).padStart(3,"0");
-  } catch(err){ /* офлайн/сбой — остаётся локальный код, заявка не потеряна */ }
-
-  $("ticketNo").textContent = ticket;
-  $("success").classList.add("on");
-  btn.disabled = false; btn.textContent = btnLabel;
+    if(!data || !data.ok || !data.n) throw new Error("bad response");
+    $("ticketNo").textContent = "№ " + data.n;      // ровно как в таблице (без ведущих нулей)
+    $("success").classList.add("on");
+  } catch(err){
+    $("formErr").classList.add("on");               // не отправилось — гость повторяет на месте
+  } finally {
+    btn.disabled = false; btn.textContent = btnLabel;
+  }
 });
 
-// tap success to reset (for demo: register many people)
+// тап по экрану успеха — закрыть и дать зарегистрировать следующего (если это общий планшет)
 $("success").addEventListener("click", () => {
   $("success").classList.remove("on");
   $("form").reset();
   document.querySelectorAll(".field.bad,.check.bad").forEach(el=>el.classList.remove("bad"));
   $("name").focus();
-});
-
-// --- Organizer panel ---
-function renderAdmin(){
-  const leads = load();
-  $("count").textContent = leads.length + " " + plural(leads.length,["заявка","заявки","заявок"]);
-  const rows = $("rows"), empty = $("empty");
-  rows.innerHTML = "";
-  empty.style.display = leads.length ? "none" : "block";
-  leads.forEach(l => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${l.n}</td><td>${esc(l.name)}</td><td class="tel">${esc(l.phone)}</td>`+
-      `<td>${l.email?esc(l.email):'<span class="no">—</span>'}</td>`+
-      `<td>${l.flavor?esc(l.flavor):'<span class="no">—</span>'}</td>`+
-      `<td>${l.ad?'<span class="yes">да</span>':'<span class="no">нет</span>'}</td>`+
-      `<td>${new Date(l.ts).toLocaleString("ru-RU")}</td>`;
-    rows.appendChild(tr);
-  });
-}
-const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function plural(n,f){ n=Math.abs(n)%100; const n1=n%10;
-  if(n>10&&n<20)return f[2]; if(n1>1&&n1<5)return f[1]; if(n1===1)return f[0]; return f[2]; }
-
-// ⚠️ ЗАГЛУШКА, НЕ настоящая защита: на статичном сайте пароль виден в исходнике,
-//    а данные читаются через DevTools мимо любой кнопки. Реальная защита ПДн =
-//    данные живут в Google-таблице под Google-аккаунтом (см. STATUS.md).
-//    Этот prompt лишь отсекает случайный тап посетителя на фестивале.
-const ORG_PASS = "смени-меня-перед-запуском";
-$("orgLink").addEventListener("click", () => {
-  const p = prompt("Пароль организатора:");
-  if(p === null) return;                       // отмена
-  if(p !== ORG_PASS){ alert("Неверный пароль"); return; }
-  renderAdmin(); $("admin").classList.add("on");
-});
-$("closeAdmin").addEventListener("click", () => $("admin").classList.remove("on"));
-$("clearBtn").addEventListener("click", () => { if(confirm("Удалить все демо-заявки?")){ save([]); renderAdmin(); } });
-$("exportBtn").addEventListener("click", () => {
-  const leads = load();
-  if(!leads.length){ alert("Пока нет заявок для выгрузки."); return; }
-  const head = ["№","Имя","Телефон","Email","Выпавший вкус","Согласие на рекламу","Дата/время"];
-  const csv = [head.join(";")].concat(leads.map(l =>
-    [l.n, l.name, l.phone, l.email||"", l.flavor||"", l.ad?"да":"нет", new Date(l.ts).toLocaleString("ru-RU")]
-      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(";")
-  )).join("\r\n");
-  const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}); // BOM = Cyrillic-safe in Excel
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "zayavki-festival.csv"; a.click();
-  URL.revokeObjectURL(a.href);
 });
 
 // --- Self-check: run with ?selftest=1 ---
