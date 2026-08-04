@@ -334,18 +334,15 @@ phoneEl.addEventListener("input", () => {
 function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
   const inp = $(fieldId).querySelector("input,select"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
 
-// Уникальный код билета = префикс устройства (создаётся раз, буквы без похожих O/0/I/1) + счётчик.
-// Браузер НЕ может прочитать ответ Apps Script (редирект ломает CORS), поэтому номер генерим здесь
-// и шлём в таблицу — экран и таблица показывают ОДИН код. Счётчик двигаем только при успешной отправке.
-function nextTicket(){
-  let dev = localStorage.getItem("fest_dev");
-  if(!dev){
-    const s = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    dev = Array.from({length:3}, () => s[Math.floor(Math.random()*s.length)]).join("");
-    localStorage.setItem("fest_dev", dev);
-  }
-  const cnt = (parseInt(localStorage.getItem("fest_cnt"),10) || 0) + 1;
-  return { code: dev + "-" + String(cnt).padStart(3,"0"), commit(){ localStorage.setItem("fest_cnt", String(cnt)); } };
+// Уникальный код билета: 6 символов из набора без похожих (нет O/0, I/1) → ~1 млрд вариантов,
+// совпадения даже при сотнях гостей практически исключены. Браузер НЕ читает ответ Apps Script
+// (редирект ломает CORS), поэтому код генерим здесь, шлём в таблицу и показываем — экран и
+// таблица показывают ОДИН код.
+function newTicket(){
+  const s = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for(let i=0;i<6;i++) c += s[Math.floor(Math.random()*s.length)];
+  return c.slice(0,3) + "-" + c.slice(3);           // формат "9DC-F7K"
 }
 
 $("form").addEventListener("submit", async (e) => {
@@ -377,8 +374,8 @@ $("form").addEventListener("submit", async (e) => {
   // Пишем в общую Google-таблицу. Ответ НЕ ждём: у Apps Script редирект, и await на мобильных
   // подвисает (сама запись проходит на первом хите). sendBeacon — надёжная фоновая доставка,
   // возвращает управление сразу → окно с номером показываем мгновенно, без зависания.
-  const t = nextTicket();
-  const payload = JSON.stringify({ ticket: t.code, name, phone, email, ad, flavor });
+  const ticket = newTicket();
+  const payload = JSON.stringify({ ticket, name, phone, email, ad, flavor });
   let queued = false;
   try {
     queued = !!(navigator.sendBeacon &&
@@ -389,8 +386,7 @@ $("form").addEventListener("submit", async (e) => {
       headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: payload }).catch(()=>{});
   }
 
-  t.commit();                                       // счётчик +1
-  $("ticketNo").textContent = t.code;               // ровно то, что ушло в таблицу
+  $("ticketNo").textContent = ticket;               // ровно то, что ушло в таблицу
   $("success").classList.add("on");
   btn.disabled = false; btn.textContent = btnLabel;
 });
