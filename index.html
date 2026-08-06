@@ -291,7 +291,7 @@
     <div class="emoji">🎉</div>
     <h2>Вы успешно зарегистрированы!</h2>
     <p>Спасибо за участие! Результаты объявим сегодня в 19:00 на Центральном рынке и в наших соцсетях.</p>
-    <div class="ticket"><small>Ваш билет участника</small><b id="ticketNo">000-000</b></div>
+    <div class="ticket"><small>Ваш билет участника</small><b id="ticketNo">№ 001</b></div>
     <div class="when">⏰ Розыгрыш сегодня в 19:00</div>
     <p class="follow">Подпишитесь, чтобы быть в курсе событий: <a href="https://t.me/icecro_official" target="_blank" rel="noopener">@icecro_official</a></p>
     <div class="buyat">
@@ -348,16 +348,25 @@ phoneEl.addEventListener("input", () => {
 function setBad(fieldId, bad){ $(fieldId).classList.toggle("bad", bad);
   const inp = $(fieldId).querySelector("input,select"); if(inp) inp.setAttribute("aria-invalid", bad?"true":"false"); }
 
-// Уникальный код билета: 6 символов из набора без похожих (нет O/0, I/1) → ~1 млрд вариантов,
-// совпадения даже при сотнях гостей практически исключены. Браузер НЕ читает ответ Apps Script
-// (редирект ломает CORS), поэтому код генерим здесь, шлём в таблицу и показываем — экран и
-// таблица показывают ОДИН код.
-function newTicket(){
-  const s = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let c = "";
-  for(let i=0;i<6;i++) c += s[Math.floor(Math.random()*s.length)];
-  return c.slice(0,3) + "-" + c.slice(3);           // формат "9DC-F7K"
+// Порядковый номер участника (001, 002…) присваивает СЕРВЕР — по числу строк в таблице.
+// Браузер не может прочитать обычный ответ Apps Script (302-редирект ломает CORS, fetch виснет
+// на мобильных), поэтому отправляем через JSONP: тег <script> следует за редиректом и исполняет
+// ответ вида cb({n:5}) сам, без CORS. Экран и таблица показывают ОДИН номер.
+function submitJSONP(params, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+    const s = document.createElement("script");
+    let done = false;
+    const timer = setTimeout(() => finish(() => reject(new Error("timeout"))), timeoutMs || 12000);
+    function finish(act){ if(done) return; done = true; clearTimeout(timer); delete window[cb]; s.remove(); act(); }
+    window[cb] = (data) => finish(() => resolve(data));
+    s.onerror = () => finish(() => reject(new Error("neterr")));
+    const q = Object.keys(params).map(k => encodeURIComponent(k)+"="+encodeURIComponent(params[k])).join("&");
+    s.src = SHEET_ENDPOINT + "?callback=" + cb + "&" + q;
+    document.head.appendChild(s);
+  });
 }
+const pad3 = (n) => ("000" + n).slice(-3);           // 5 → "005"
 
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -382,25 +391,16 @@ $("form").addEventListener("submit", async (e) => {
   if(navigator.onLine === false){ $("formErr").classList.add("on"); return; }
 
   btn.disabled = true; btn.textContent = "Регистрируем…";
-
-  // Пишем в общую Google-таблицу. Ответ НЕ ждём: у Apps Script редирект, и await на мобильных
-  // подвисает (сама запись проходит на первом хите). sendBeacon — надёжная фоновая доставка,
-  // возвращает управление сразу → окно с номером показываем мгновенно, без зависания.
-  const ticket = newTicket();
-  const payload = JSON.stringify({ ticket, name, phone, email, ad });
-  let queued = false;
   try {
-    queued = !!(navigator.sendBeacon &&
-      navigator.sendBeacon(SHEET_ENDPOINT, new Blob([payload], { type:"text/plain;charset=utf-8" })));
-  } catch(e){}
-  if(!queued){                                      // запасной путь — fire-and-forget, ответ не читаем
-    fetch(SHEET_ENDPOINT, { method:"POST", mode:"no-cors",
-      headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: payload }).catch(()=>{});
+    const res = await submitJSONP({ name, phone, email, ad: ad ? 1 : 0 });
+    if(!res || res.ok === false || !res.n) throw new Error("bad response");
+    $("ticketNo").textContent = "№ " + pad3(res.n);   // номер от сервера = номер строки в таблице
+    $("success").classList.add("on");
+  } catch(err){
+    $("formErr").classList.add("on");                 // не показываем фейковый успех, если номер не пришёл
+  } finally {
+    btn.disabled = false; btn.textContent = btnLabel;
   }
-
-  $("ticketNo").textContent = ticket;               // ровно то, что ушло в таблицу
-  $("success").classList.add("on");
-  btn.disabled = false; btn.textContent = btnLabel;
 });
 
 // тап по экрану успеха — закрыть и дать зарегистрировать следующего (если это общий планшет)

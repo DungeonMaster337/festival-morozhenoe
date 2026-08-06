@@ -1,49 +1,59 @@
 /**
  * Боевая общая база заявок фестиваля — Google Apps Script.
  * Установка/обновление:
- *   Таблица → Расширения → Apps Script → вставить этот код → 💾 →
+ *   Таблица → Расширения → Apps Script → вставить этот код (заменить старый) → 💾 →
  *   Deploy → Manage deployments → ✏️ (Edit) → Version: New version → Deploy.
  *   (URL веб-приложения при этом НЕ меняется.)
  *
- * ВАЖНО при обновлении структуры: новая строка заголовков создаётся автоматически
- * ТОЛЬКО если лист пустой. Поэтому перед первым боевым запуском очисти лист
- * ПОЛНОСТЬЮ (удали все строки, включая старую шапку) — новая шапка встанет сама.
+ * ⚠️ ВАЖНО при обновлении структуры: новая строка заголовков создаётся автоматически
+ * ТОЛЬКО если лист пустой. Меняется набор колонок → перед первым боевым запуском
+ * ОЧИСТИ лист ПОЛНОСТЬЮ (удали все строки, включая старую шапку) — новая шапка встанет
+ * сама, и нумерация участников пойдёт с 1.
  *
- * Колонки: # | Билет | Имя | Телефон | Email | Согласие реклама | Выпавший вкус | Дата/время
- * «Билет» = уникальный код, который гость видит на экране (генерится на телефоне и шлётся сюда) —
- * экран и таблица показывают ОДИН код. «#» — порядковый номер строки для обзора.
+ * Колонки: # | Имя | Телефон | Email | Согласие реклама | Дата/время
+ * «#» — порядковый номер участника (он же «билет»): его присваивает сервер по числу строк
+ * и возвращает на телефон, где показывается как «№ 001». Экран и таблица = ОДИН номер.
+ *
+ * Отправка с телефона идёт через JSONP-GET (тег <script>): это обходит CORS и 302-редирект
+ * Apps Script и не виснет на мобильных, в отличие от fetch. Поэтому запись делает doGet.
  */
-function doPost(e) {
-  var lock = LockService.getScriptLock();      // ponytail: global lock, ок для потока фестиваля
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  var cb = p.callback;
+  if (!p.name && !p.phone) {                 // просто пинг / проверка живости
+    return reply(cb, { ok: true, ping: 'festival endpoint alive' });
+  }
+  var lock = LockService.getScriptLock();    // защита от гонок при одновременных отправках
   lock.waitLock(20000);
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['#', 'Билет', 'Имя', 'Телефон', 'Email', 'Согласие реклама', 'Выпавший вкус', 'Дата/время']);
+      sheet.appendRow(['#', 'Имя', 'Телефон', 'Email', 'Согласие реклама', 'Дата/время']);
     }
-    var d = JSON.parse(e.postData.contents || '{}');
-    var n = sheet.getLastRow();                 // строка заголовков = 1 → n = порядковый номер заявки
+    var n = sheet.getLastRow();              // строка заголовков = 1 → n = номер участника (1,2,3…)
     sheet.appendRow([
       n,
-      d.ticket || '',                           // код билета, который видит гость
-      d.name || '',
-      d.phone || '',
-      d.email || '',
-      d.ad ? 'да' : 'нет',
-      d.flavor || '',
+      p.name  || '',
+      p.phone || '',
+      p.email || '',
+      p.ad === '1' ? 'да' : 'нет',
       new Date()
     ]);
-    return json({ ok: true, n: n, ticket: d.ticket || '' });
+    return reply(cb, { ok: true, n: n });
   } catch (err) {
-    return json({ ok: false, error: String(err) });
+    return reply(cb, { ok: false, error: String(err) });
   } finally {
     lock.releaseLock();
   }
 }
 
-function doGet() { return json({ ok: true, ping: 'festival endpoint alive' }); }
-
-function json(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
+// JSONP-обёртка: если пришёл ?callback= — отдаём cb({...}) как JS, иначе обычный JSON.
+function reply(cb, obj) {
+  var out = JSON.stringify(obj);
+  if (cb) {
+    return ContentService.createTextOutput(cb + '(' + out + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(out)
     .setMimeType(ContentService.MimeType.JSON);
 }
