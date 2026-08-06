@@ -205,15 +205,12 @@
   /* --- Где купить (на экране успеха) --- */
   .buyat{margin-top:20px; padding-top:16px; border-top:1px solid var(--line)}
   .buyat .cap{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin:0 0 10px}
-  .buyat .shops{display:flex; flex-wrap:wrap; gap:7px; justify-content:center}
+  .buyat .shops{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center}
   .buyat .shop{
-    font-size:12px; font-weight:700; letter-spacing:.005em; line-height:1;
-    padding:7px 11px; border-radius:9px; white-space:nowrap;
+    background:#fff; border:1px solid #E4EEF0; border-radius:10px;
+    padding:8px 12px; display:inline-flex; align-items:center;
   }
-  .shop.lavka{background:#FFDD2D; color:#21201F}
-  .shop.samokat{background:#FF335F; color:#fff}
-  .shop.azbuka{background:#151515; color:#fff}
-  .shop.perek{background:#1B8A3D; color:#fff}
+  .buyat .shop img{height:20px; width:auto; display:block}
 
   /* --- Form-level error (нет сети / не отправилось) --- */
   .formerr{
@@ -295,10 +292,10 @@
     <div class="buyat">
       <p class="cap">Нас можно купить в:</p>
       <div class="shops">
-        <span class="shop lavka">Яндекс&nbsp;Лавка</span>
-        <span class="shop samokat">Самокат</span>
-        <span class="shop azbuka">Азбука&nbsp;Вкуса</span>
-        <span class="shop perek">Перекрёсток</span>
+        <span class="shop"><img src="logos/lavka.svg" alt="Яндекс Лавка"></span>
+        <span class="shop"><img src="logos/samokat.svg" alt="Самокат"></span>
+        <span class="shop"><img src="logos/azbuka.svg" alt="Азбука Вкуса"></span>
+        <span class="shop"><img src="logos/perek.svg" alt="Перекрёсток"></span>
       </div>
     </div>
   </div>
