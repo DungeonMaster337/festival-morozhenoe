@@ -6,7 +6,7 @@
     --ground:#F5FBFB; --card:#FFFFFF; --ink:#123239; --ink-soft:#4A6E75;
     --line:#D9EDEF; --field:#F1FAFB; --field-line:#CFE7EA;
     --accent:#057A8A; --accent-press:#04707E; --accent-ink:#FFFFFF;
-    --pistachio:#057A8A; --gold:#F2B705; --brand:#00B4CC;
+    --pistachio:#057A8A; --gold:#F2B705; --brand:#00B4CC; --pink:#E5417E;
     --blob-a:rgba(0,180,204,.16); --blob-b:rgba(242,183,5,.13);
     --shadow:0 18px 40px -18px rgba(11,45,52,.30);
     --ok:#2FA36B;
@@ -16,7 +16,7 @@
       --ground:#0C2429; --card:#123339; --ink:#EAF7F9; --ink-soft:#93BBC1;
       --line:#204A52; --field:#153A41; --field-line:#27545D;
       --accent:#34C7DB; --accent-press:#5AD6E6; --accent-ink:#062A30;
-      --pistachio:#5FD4E6; --gold:#F2C94C; --brand:#5FD4E6;
+      --pistachio:#5FD4E6; --gold:#F2C94C; --brand:#5FD4E6; --pink:#FF7AAA;
       --blob-a:rgba(52,199,219,.14); --blob-b:rgba(242,201,76,.10);
       --shadow:0 22px 48px -20px rgba(0,0,0,.6);
       --ok:#57C58C;
@@ -26,7 +26,7 @@
     --ground:#F5FBFB; --card:#FFFFFF; --ink:#123239; --ink-soft:#4A6E75;
     --line:#D9EDEF; --field:#F1FAFB; --field-line:#CFE7EA;
     --accent:#057A8A; --accent-press:#04707E; --accent-ink:#FFFFFF;
-    --pistachio:#057A8A; --gold:#F2B705; --brand:#00B4CC;
+    --pistachio:#057A8A; --gold:#F2B705; --brand:#00B4CC; --pink:#E5417E;
     --blob-a:rgba(0,180,204,.16); --blob-b:rgba(242,183,5,.13);
     --shadow:0 18px 40px -18px rgba(11,45,52,.30); --ok:#2FA36B;
   }
@@ -34,7 +34,7 @@
     --ground:#0C2429; --card:#123339; --ink:#EAF7F9; --ink-soft:#93BBC1;
     --line:#204A52; --field:#153A41; --field-line:#27545D;
     --accent:#34C7DB; --accent-press:#5AD6E6; --accent-ink:#062A30;
-    --pistachio:#5FD4E6; --gold:#F2C94C; --brand:#5FD4E6;
+    --pistachio:#5FD4E6; --gold:#F2C94C; --brand:#5FD4E6; --pink:#FF7AAA;
     --blob-a:rgba(52,199,219,.14); --blob-b:rgba(242,201,76,.10);
     --shadow:0 22px 48px -20px rgba(0,0,0,.6); --ok:#57C58C;
   }
@@ -82,7 +82,6 @@
   }
 
   .hero{display:flex; flex-direction:column; gap:10px}
-  .scoop{font-size:44px; line-height:1; filter:saturate(1.05)}
   h1{
     margin:0; font-size:clamp(28px,8vw,36px); line-height:1.04;
     font-weight:800; letter-spacing:-.02em; text-wrap:balance;
@@ -104,6 +103,8 @@
   .prize .t{font-size:13.5px; line-height:1.35}
   .prize .t strong{display:block; font-size:15px; color:var(--ink)}
   .prize .t span{color:var(--ink-soft)}
+  .prize .t a{color:var(--accent); font-weight:600; text-decoration:none}
+  .prize .t a:hover{text-decoration:underline}
 
   /* --- Form card --- */
   form{
@@ -181,16 +182,18 @@
     text-align:center; animation:pop .4s cubic-bezier(.2,.9,.3,1.3);
   }
   @keyframes pop{from{transform:scale(.9) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+  .success .logo{height:32px; width:auto; display:block; margin:0 auto 12px}
   .success .emoji{font-size:56px; line-height:1}
   .success h2{margin:14px 0 8px; font-size:24px; font-weight:800; letter-spacing:-.01em}
   .success p{margin:0 auto; font-size:15.5px; line-height:1.55; color:var(--ink-soft); max-width:32ch}
   .success .ticket{
     margin:18px auto 0; display:inline-flex; flex-direction:column; gap:2px;
-    background:var(--field); border:1px dashed var(--accent); border-radius:14px;
-    padding:12px 20px;
+    background:color-mix(in srgb,var(--pink) 9%, var(--card));
+    border:1.5px dashed var(--pink); border-radius:14px;
+    padding:12px 22px;
   }
   .success .ticket small{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft)}
-  .success .ticket b{font-size:26px; color:var(--accent); font-variant-numeric:tabular-nums}
+  .success .ticket b{font-size:28px; color:var(--pink); font-variant-numeric:tabular-nums; letter-spacing:.04em}
   .success .when{
     margin-top:16px; font-size:14px; color:var(--ink); font-weight:600;
     display:inline-flex; align-items:center; gap:7px;
@@ -198,6 +201,19 @@
   .success .follow{margin-top:14px; font-size:14px; color:var(--ink-soft)}
   .success .follow a{color:var(--accent); font-weight:600; text-decoration:none}
   .success .follow a:hover{text-decoration:underline}
+
+  /* --- Где купить (на экране успеха) --- */
+  .buyat{margin-top:20px; padding-top:16px; border-top:1px solid var(--line)}
+  .buyat .cap{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin:0 0 10px}
+  .buyat .shops{display:flex; flex-wrap:wrap; gap:7px; justify-content:center}
+  .buyat .shop{
+    font-size:12px; font-weight:700; letter-spacing:.005em; line-height:1;
+    padding:7px 11px; border-radius:9px; white-space:nowrap;
+  }
+  .shop.lavka{background:#FFDD2D; color:#21201F}
+  .shop.samokat{background:#FF335F; color:#fff}
+  .shop.azbuka{background:#151515; color:#fff}
+  .shop.perek{background:#1B8A3D; color:#fff}
 
   /* --- Form-level error (нет сети / не отправилось) --- */
   .formerr{
@@ -219,14 +235,13 @@
   <span class="eyebrow"><span class="dot"></span>Фестиваль мороженого · Центральный рынок</span>
 
   <div class="hero">
-    <div class="scoop">🍦</div>
     <h1>Разыгрываем <em>годовой запас мороженого</em></h1>
-    <p class="lede">Вы уже крутанули колесо и получили угощение с подарком. Осталось <b>зарегистрировать билет участника</b> — и в&nbsp;19:00 вы в розыгрыше главного приза.</p>
+    <p class="lede">Заполни форму, получи подарок и автоматически стань <b>участником розыгрыша</b> годового запаса мороженого!</p>
   </div>
 
   <div class="prize">
-    <span class="big">🎡</span>
-    <span class="t"><strong>Розыгрыш в 19:00, сегодня</strong><span>Победитель получает мороженое на весь год</span></span>
+    <span class="big">🎁</span>
+    <span class="t"><strong>Результаты сегодня в 19:00</strong><span>На Центральном рынке и в наших соцсетях <a href="https://t.me/icecro_official" target="_blank" rel="noopener">@icecro_official</a></span></span>
   </div>
 
   <form id="form" novalidate>
@@ -243,24 +258,9 @@
     </div>
 
     <div class="field" id="f-email">
-      <label for="email">Email <span class="opt">— по желанию</span></label>
-      <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.ru">
+      <label for="email">Email <span class="req">*</span></label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.ru" required>
       <div class="err">Проверьте адрес почты</div>
-    </div>
-
-    <div class="field" id="f-flavor">
-      <label for="flavor">Выпавший вкус <span class="req">*</span></label>
-      <select id="flavor" name="flavor" required>
-        <option value="" disabled selected>— что выпало на колесе —</option>
-        <option>Мадагаскарская ваниль</option>
-        <option>Горький шоколад</option>
-        <option>Клубника со сливками</option>
-        <option>Шоколадное печенье</option>
-        <option>Фисташка</option>
-        <option>Зелёный чай — грейпфрут</option>
-        <option>Другой / не помню</option>
-      </select>
-      <div class="err">Выберите выпавший вкус</div>
     </div>
 
     <div class="consents">
@@ -285,12 +285,22 @@
 <!-- Success -->
 <div class="success" id="success" role="dialog" aria-live="polite" aria-modal="true">
   <div class="box">
+    <img class="logo" src="logo.png" alt="айскро">
     <div class="emoji">🎉</div>
     <h2>Вы успешно зарегистрированы!</h2>
-    <p>Спасибо за участие! Ждём вас в 19:00 на Центральном рынке, где выберем победителя с помощью рандомайзера.</p>
-    <div class="ticket"><small>Ваш билет участника</small><b id="ticketNo">№ 001</b></div>
+    <p>Спасибо за участие! Результаты объявим сегодня в 19:00 на Центральном рынке и в наших соцсетях.</p>
+    <div class="ticket"><small>Ваш билет участника</small><b id="ticketNo">000-000</b></div>
     <div class="when">⏰ Розыгрыш сегодня в 19:00</div>
     <p class="follow">Подпишитесь, чтобы быть в курсе событий: <a href="https://t.me/icecro_official" target="_blank" rel="noopener">@icecro_official</a></p>
+    <div class="buyat">
+      <p class="cap">Нас можно купить в:</p>
+      <div class="shops">
+        <span class="shop lavka">Яндекс&nbsp;Лавка</span>
+        <span class="shop samokat">Самокат</span>
+        <span class="shop azbuka">Азбука&nbsp;Вкуса</span>
+        <span class="shop perek">Перекрёсток</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -322,7 +332,7 @@ function formatPhone(raw){
   if(p.length >= 8) out += "-" + p.slice(8,10);
   return out;
 }
-const validEmail = (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const validEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  // email обязателен
 
 const $ = (id) => document.getElementById(id);
 const phoneEl = $("phone");
@@ -352,7 +362,6 @@ $("form").addEventListener("submit", async (e) => {
   const name = $("name").value.trim();
   const phone = normalizePhone(phoneEl.value);
   const email = $("email").value.trim();
-  const flavor = $("flavor").value;
   const pdn = $("pdn").checked;
   const ad = $("ad").checked;
 
@@ -360,7 +369,6 @@ $("form").addEventListener("submit", async (e) => {
   setBad("f-name", !name); if(!name) ok = false;
   setBad("f-phone", !phone); if(!phone) ok = false;
   setBad("f-email", !validEmail(email)); if(!validEmail(email)) ok = false;
-  setBad("f-flavor", !flavor); if(!flavor) ok = false;
   $("c-pdn").classList.toggle("bad", !pdn); if(!pdn) ok = false;
   if(!ok){ const first = document.querySelector(".field.bad input, .field.bad select, .check.bad input"); if(first) first.focus(); return; }
 
@@ -377,7 +385,7 @@ $("form").addEventListener("submit", async (e) => {
   // подвисает (сама запись проходит на первом хите). sendBeacon — надёжная фоновая доставка,
   // возвращает управление сразу → окно с номером показываем мгновенно, без зависания.
   const ticket = newTicket();
-  const payload = JSON.stringify({ ticket, name, phone, email, ad, flavor });
+  const payload = JSON.stringify({ ticket, name, phone, email, ad });
   let queued = false;
   try {
     queued = !!(navigator.sendBeacon &&
@@ -408,7 +416,7 @@ if(new URLSearchParams(location.search).get("selftest")){
   A(normalizePhone("+7 (912) 345-67-89")==="+79123456789","formatted");
   A(normalizePhone("9123456789")==="+79123456789","10-digit no code");
   A(normalizePhone("912345")===null,"too short -> null");
-  A(validEmail("")===true,"empty email ok");
+  A(validEmail("")===false,"empty email now required");
   A(validEmail("a@b.ru")===true,"valid email");
   A(validEmail("nope")===false,"invalid email");
   document.title = "✅ selftest passed";
